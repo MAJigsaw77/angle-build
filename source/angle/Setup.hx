@@ -62,6 +62,9 @@ class Setup
 
 			// Syncing ANGLE dependencies with gclient...
 			Sys.command('gclient', ['sync', '--no-history', '--shallow', '--jobs', '8']);
+
+			// Apply patches to ANGLE (to fix stupid issues).
+			readAndApplyGitPatches('../patches');
 		});
 
 		// Print
@@ -73,6 +76,34 @@ class Setup
 	{
 		if (!FileSystem.exists(name))
 			Sys.command('git', ['clone', '--depth', '1', url]);
+	}
+
+	@:noCompletion
+	static function readAndApplyGitPatches(dir:String):Void
+	{
+		if (!FileSystem.exists(dir))
+			return;
+
+		final patches:Array<String> = FileSystem.readDirectory(dir);
+
+		patches.sort(Reflect.compare);
+
+		for (patch in patches)
+		{
+			if (Path.extension(patch) == 'patch')
+			{
+				final patchPath:String = Path.join([dir, patch]);
+
+				final patchCheck:Int = Sys.command('git', ['apply', '--check', patchPath]);
+	
+				if (patchCheck != 0)
+				{
+					Sys.println(ANSIUtil.apply('Cannot apply "$patch"! Continuing without being applied', [ANSICode.Bold, ANSICode.Yellow]));
+				}
+				else
+					Sys.command('git', ['apply', patchPath]);
+			}
+		}
 	}
 
 	@:noCompletion
