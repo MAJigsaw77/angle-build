@@ -1,0 +1,40 @@
+﻿From d0d1a5aad7d52a698581fe969b80460a4712c9f8 Mon Sep 17 00:00:00 2001
+From: MAJigsaw77 <77043862+MAJigsaw77@users.noreply.github.com>
+Date: Thu, 16 Apr 2026 01:20:32 +0300
+Subject: [PATCH] Avoid blocking on nextDrawable; skip busy frames
+
+---
+ src/libANGLE/renderer/metal/SurfaceMtl.mm | 10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/src/libANGLE/renderer/metal/SurfaceMtl.mm b/src/libANGLE/renderer/metal/SurfaceMtl.mm
+index e57fb5018b..69e5f3d500 100644
+--- a/src/libANGLE/renderer/metal/SurfaceMtl.mm
++++ b/src/libANGLE/renderer/metal/SurfaceMtl.mm
+@@ -461,6 +461,7 @@ egl::Error WindowSurfaceMtl::initialize(const egl::Display *display)
+         mMetalLayer.get().device          = metalDevice;
+         mMetalLayer.get().pixelFormat     = mColorFormat.metalFormat;
+         mMetalLayer.get().framebufferOnly = NO;  // Support blitting and glReadPixels
++        mMetalLayer.get().allowsNextDrawableTimeout = YES;  // No indefinite waits
+ 
+ #if TARGET_OS_OSX || TARGET_OS_MACCATALYST
+         // Autoresize with parent layer.
+@@ -651,12 +652,9 @@ angle::Result WindowSurfaceMtl::obtainNextDrawable(const gl::Context *context)
+         mCurrentDrawable = [mMetalLayer nextDrawable];
+         if (!mCurrentDrawable)
+         {
+-            // The GPU might be taking too long finishing its rendering to the previous frame.
+-            // Try again, indefinitely wait until the previous frame render finishes.
+-            // TODO: this may wait forever here
+-            mMetalLayer.get().allowsNextDrawableTimeout = NO;
+-            mCurrentDrawable                            = [mMetalLayer nextDrawable];
+-            mMetalLayer.get().allowsNextDrawableTimeout = YES;
++            // GPU is too busy, skip this frame.
++            // We will try to get drawable again in next frame.
++            return angle::Result::Continue;
+         }
+ 
+         if (!mColorTexture)
+-- 
+2.47.1.windows.1
+
