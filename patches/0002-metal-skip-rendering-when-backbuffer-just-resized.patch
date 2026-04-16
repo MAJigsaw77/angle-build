@@ -1,0 +1,26 @@
+﻿From f0bb382b1f7a1ca97848e3b8ab92f94f79401d95 Mon Sep 17 00:00:00 2001
+From: MAJigsaw77 <77043862+MAJigsaw77@users.noreply.github.com>
+Date: Thu, 16 Apr 2026 09:00:58 +0300
+Subject: [PATCH] Skip frame when backbuffer resized
+
+---
+ src/libANGLE/renderer/metal/SurfaceMtl.mm | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/src/libANGLE/renderer/metal/SurfaceMtl.mm b/src/libANGLE/renderer/metal/SurfaceMtl.mm
+index 69e5f3d500..f55b1d11f5 100644
+--- a/src/libANGLE/renderer/metal/SurfaceMtl.mm
++++ b/src/libANGLE/renderer/metal/SurfaceMtl.mm
+@@ -647,6 +647,9 @@ angle::Result WindowSurfaceMtl::obtainNextDrawable(const gl::Context *context)
+         if (checkIfLayerResized(context))
+         {
+             contextMtl->onBackbufferResized(context, this);
++
++            // Skip rendering this frame since the backbuffer was just resized/recreated
++            return angle::Result::Continue;
+         }
+ 
+         mCurrentDrawable = [mMetalLayer nextDrawable];
+-- 
+2.47.1.windows.1
+
